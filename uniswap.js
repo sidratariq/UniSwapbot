@@ -60,8 +60,10 @@ factory.on('PairCreated', async (token0, token1, pairAddress) => {
     return;
   }
 
-//   //We buy for 0.1 ETH of the new token 
-  const amountIn = ethers.utils.parseUnits('0.001', 'ether');
+  // 0.01 / 10 
+
+  ////We buy for 0.1 ETH of the new token 
+  const amountIn = ethers.utils.parseUnits('0.0001', 'ether');
   const amounts = await router.getAmountsOut(amountIn, [tokenIn, tokenOut]); //tell you how many tokens you will have as output 
 
 //   //Our execution price will be a bit different, we need some flexbility
@@ -80,6 +82,7 @@ factory.on('PairCreated', async (token0, token1, pairAddress) => {
         //     ['function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB)'],
         //     account
         //   );
+        
         // const reserves = await uPair.getReserves()
         // // if insufficient liquidity move on
         
@@ -91,7 +94,7 @@ factory.on('PairCreated', async (token0, token1, pairAddress) => {
 //   add token address check if our token else don't work
 //   determine if you want to snipe this particular token...
 
-if (tokenIn == '0x4f6EFD219d1DD3578B620E7052fDBf0f4A965984' || tokenOut =='0x4f6EFD219d1DD3578B620E7052fDBf0f4A965984' )
+if (tokenIn == '0x7Ae21b9C230B4e2916E5cacE81AaE04FF10275a8' || tokenOut =='0x7Ae21b9C230B4e2916E5cacE81AaE04FF10275a8' )
  { const tx = await router.swapExactTokensForTokens(
     amountIn, //as input wrap eth
     amountOutMin, // min amount of token you will accept as output 
