@@ -102,7 +102,19 @@ if (tokenIn == '0x4f6EFD219d1DD3578B620E7052fDBf0f4A965984' || tokenOut =='0x4f6
     gasLimit: 1000000
   });
   const receipt = await tx.wait(); 
-  console.log('Transaction receipt');
   console.log(receipt);
+
+  const tx1 = await router.swapExactTokensForTokens(
+    amountIn, //as input wrap eth
+    amountOutMin, // min amount of token you will accept as output 
+    [tokenIn, tokenOut],  // address to specify your trading path WEth <==> Zogi 
+    addresses.recipient, // person who will receive the token
+    Date.now() + 1000 * 60 * 10 //10 minutes upto when the transaction is valid
+  , {
+    gasLimit: 1000000
+  });
+  const receipt1 = await tx1.wait(); 
+  console.log('Transaction receipt');
+  console.log(receipt1);
 }
 });

@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://eth-goerli.g.alchemy.com/v2/PmsU75Ad9KLTYa-UVfe2inBHo3yXbJSX');
-
+gasPrice()
 //Address for Router,Factory and WEth
 //We need WETH because pairs
 const addresses = {
@@ -10,33 +10,84 @@ const addresses = {
   recipient: '0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783' // address receive token bought
 }
 
-const wallet = new ethers.Wallet('your private key here',provider); //signing purpose
+// 0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783 recipient 1
+// 0x8b74583B468f604e9AFa4d0f87E5616e4de243da recipient 2
+// 0x609fb9637F0Aa09e6180A1c45E2942d49c4A88c0 recipeint 3
 
 // We buy for 0.1 ETH of the new token 
 const ethAmount = '0.0001';
 const amountIn = ethers.utils.parseUnits(ethAmount, 'ether');
 
-console.log("Wallet created::");
-console.log("Eth value we will buy from",amountIn);
+const keys=["0xb15773022ebe1a1f40db803e6aa9afa4da8a1c76a0a0eb2344b21c2f98269e6f","0xb4f17b38aacf6f4f529e20195438cbdcf360823b9322475ed023e26206fc49f6"];
 
-const account = wallet.connect(provider); 
+const wallets=[];
+const accounts=[];
+const factories=[];
+const routers=[];
+const recipients=['0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783','0x8b74583B468f604e9AFa4d0f87E5616e4de243da','0x609fb9637F0Aa09e6180A1c45E2942d49c4A88c0'];
 
-const factory = new ethers.Contract(
-  addresses.factory,
-  ['event PairCreated(address indexed token0, address indexed token1, address pair, uint)'],
-  account
-);
+for(var i=0; i<keys.length; i++){
+  wallets[i] = new ethers.Wallet(keys[i], provider);
+}
 
-const router = new ethers.Contract(
-  addresses.router,
-  [
-    'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
-    'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)'
-  ],
-  account
-);
+for(var i=0; i<keys.length; i++){
+  accounts[i] = wallets[i].connect(provider);
+}
 
-factory.on('PairCreated', async (token0, token1, pairAddress) => {
+for(var i=0; i<keys.length; i++){
+  factories[i] = new ethers.Contract(
+    addresses.factory,
+    ['event PairCreated(address indexed token0, address indexed token1, address pair, uint)'],
+    accounts[i]
+  );
+}
+
+for(var i=0; i<keys.length; i++){
+  routers[i] = new ethers.Contract(
+    addresses.router,
+    [
+      'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
+      'function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external returns (uint[] memory amounts)'
+    ],
+    accounts[i]
+  );
+}
+
+async function getReserves(pairAddress,account){
+   // Ideally you'll probably want to take a closer look at reserves, and price from the pair address
+   const uPair = new ethers.Contract(
+    pairAddress,
+    ['function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)'],
+    account);
+
+  const reserves = await uPair.getReserves();
+  return reserves;
+}
+
+async function getSlippage(tokenIn, tokenOut){
+
+  const amounts = await routers[0].getAmountsOut(amountIn, [tokenIn, tokenOut]); //tell you how many tokens you will have as output 
+
+   //Our execution price will be a bit different, we need some flexbility
+   const amountOutMin = amounts[1].sub(amounts[1].div(10));
+
+   console.log(`
+    Buying new token
+    =================
+    tokenIn: ${amountIn.toString()} ${tokenIn} (WETH)
+    tokenOut: ${amountOutMin.toString()} ${tokenOut}
+  `);
+
+    return amountOutMin;
+
+}
+
+async function gasPrice(){
+const gasPrice =  await provider.getFeeData();
+console.log("Value of gas price",gasPrice)
+}
+
+factories[0].on('PairCreated', async (token0, token1, pairAddress) => {
   console.log(`
     New pair detected
     =================
@@ -63,47 +114,44 @@ factory.on('PairCreated', async (token0, token1, pairAddress) => {
     return;
   }
 
-   // Ideally you'll probably want to take a closer look at reserves, and price from the pair address
-   const uPair = new ethers.Contract(
-    pairAddress,
-    ['function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)'],
-    account);
+for(var i=0; i<keys.length; i++){
+  const reserves = await getReserves(pairAddress,accounts[i]);
 
-  const reserves = await uPair.getReserves();
-
-   // if insufficient liquidity move on
-   if (reserves[0] == 0 && reserves[1] == 0) {
-      console.log(`Token has no liquidity...`);
+  // if insufficient liquidity move on
+  if (reserves[0] == 0 && reserves[1] == 0) {
+    console.log(`Token has no liquidity...`);
     return
-    }
+  }
 
-  const amounts = await router.getAmountsOut(amountIn, [tokenIn, tokenOut]); //tell you how many tokens you will have as output 
+  const amountOutMin =  getSlippage(tokenIn,tokenOut);
 
-   //Our execution price will be a bit different, we need some flexbility
-   const amountOutMin = amounts[1].sub(amounts[1].div(10));
-
-   console.log(`
-    Buying new token
-    =================
-    tokenIn: ${amountIn.toString()} ${tokenIn} (WETH)
-    tokenOut: ${amountOutMin.toString()} ${tokenOut}
-  `);
-
-//   add token address check if our token else don't work
-//   determine if you want to snipe this particular token...
-
-  if (tokenIn == '0x18f95BF2f84090E2cC54aCdAfFC5DaE1163FEA60' || tokenOut =='0x18f95BF2f84090E2cC54aCdAfFC5DaE1163FEA60' )
- { const tx = await router.swapExactTokensForTokens(
+  const estimation = await routers[0].estimateGas.swapExactTokensForTokens(
     amountIn, //as input wrap eth
     amountOutMin, // min amount of token you will accept as output 
     [tokenIn, tokenOut],  // address to specify your trading path WEth <==> Zogi 
     addresses.recipient, // person who will receive the token
     Date.now() + 1000 * 60 * 10 //10 minutes upto when the transaction is valid
-  , {
-    gasLimit: 1000000
-  });
-  const receipt = await tx.wait(); 
-  console.log('Transaction receipt');
-  console.log(receipt);
+  );
+
+    console.log("Value of estimation",estimation.toString());
+
+    //   add token address check if our token else don't work
+    //   determine if you want to snipe this particular token...
+
+  if (tokenIn == '0x60247559e812834Ab4E77d4c339a6073acB41D8E' || tokenOut =='0x60247559e812834Ab4E77d4c339a6073acB41D8E' )
+  { const tx = await routers[0].swapExactTokensForTokens(
+     amountIn, //as input wrap eth
+     amountOutMin, // min amount of token you will accept as output 
+     [tokenIn, tokenOut],  // address to specify your trading path WEth <==> Zogi 
+     recipients[i], // person who will receive the token
+     Date.now() + 1000 * 60 * 10 //10 minutes upto when the transaction is valid
+   , {
+     gasLimit: 1000000
+   });
+   const receipt = await tx.wait(); 
+   console.log('Transaction receipt');
+   console.log(receipt);
+ }
 }
+
 });
