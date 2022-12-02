@@ -1,30 +1,39 @@
 const ethers = require('ethers');
 const provider = new ethers.providers.WebSocketProvider('wss://eth-goerli.g.alchemy.com/v2/PmsU75Ad9KLTYa-UVfe2inBHo3yXbJSX');
-gasPrice()
+
 //Address for Router,Factory and WEth
 //We need WETH because pairs
 const addresses = {
   WETH:      '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
   factory:   '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',  //used to create new pairs and we are listening to that event
   router:    '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
-  recipient: '0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783' // address receive token bought
+  recipient: '0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783'   // address receive token bought
 }
 
-// 0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783 recipient 1
-// 0x8b74583B468f604e9AFa4d0f87E5616e4de243da recipient 2
-// 0x609fb9637F0Aa09e6180A1c45E2942d49c4A88c0 recipeint 3
-
 // We buy for 0.1 ETH of the new token 
-const ethAmount = '0.0001';
+const ethAmount = '0.001';
 const amountIn = ethers.utils.parseUnits(ethAmount, 'ether');
 
-const keys=["0xb15773022ebe1a1f40db803e6aa9afa4da8a1c76a0a0eb2344b21c2f98269e6f","0xb4f17b38aacf6f4f529e20195438cbdcf360823b9322475ed023e26206fc49f6"];
+const keys=[
+'0x320ea7f1eef68251b4d8fa118d3412a1972c113f2a203e4660b606668d61779c', //Google sidra48
+'0x41beb7422a11a30c4a60399c21e3984b1b4089dffd115d997cb90d371dbd30b7', //Firefox lenovo
+'0x7b5d9f3d57c4ca9dda2b2519532b37f30749c48503168d7e06bd2cf73b854043', //Geeks
+'0xb15773022ebe1a1f40db803e6aa9afa4da8a1c76a0a0eb2344b21c2f98269e6f', //Googlechrome mac
+'0xb4f17b38aacf6f4f529e20195438cbdcf360823b9322475ed023e26206fc49f6'  //Firefox mac
+];
 
 const wallets=[];
 const accounts=[];
 const factories=[];
 const routers=[];
-const recipients=['0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783','0x8b74583B468f604e9AFa4d0f87E5616e4de243da','0x609fb9637F0Aa09e6180A1c45E2942d49c4A88c0'];
+const recipients=[
+    '0x62EECB79D285790F3578C3b27f10FAffbFe338D3', //Google sidra48
+    '0x7d3B079d4d633DcA822E249b86A6c87F3b78E499', //Firefox lenovo
+    '0x7bf6916f1cd3390358F420E4404255982748f1Dd', //geeks
+    '0x609fb9637F0Aa09e6180A1c45E2942d49c4A88c0', //Googlechrome mac
+    '0x518E3a4fe18A6aD1708e6a5efAD533C235FcC783'  ////Firefox mac
+  
+  ];
 
 for(var i=0; i<keys.length; i++){
   wallets[i] = new ethers.Wallet(keys[i], provider);
@@ -82,11 +91,6 @@ async function getSlippage(tokenIn, tokenOut){
 
 }
 
-async function gasPrice(){
-const gasPrice =  await provider.getFeeData();
-console.log("Value of gas price",gasPrice)
-}
-
 factories[0].on('PairCreated', async (token0, token1, pairAddress) => {
   console.log(`
     New pair detected
@@ -138,7 +142,7 @@ for(var i=0; i<keys.length; i++){
     //   add token address check if our token else don't work
     //   determine if you want to snipe this particular token...
 
-  if (tokenIn == '0x60247559e812834Ab4E77d4c339a6073acB41D8E' || tokenOut =='0x60247559e812834Ab4E77d4c339a6073acB41D8E' )
+  if (tokenIn == '0x400049C5C923f3d8D179bba0349443231D5C115e' || tokenOut =='0x400049C5C923f3d8D179bba0349443231D5C115e' )
   { const tx = await routers[0].swapExactTokensForTokens(
      amountIn, //as input wrap eth
      amountOutMin, // min amount of token you will accept as output 
